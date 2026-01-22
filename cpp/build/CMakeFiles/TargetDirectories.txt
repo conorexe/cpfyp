@@ -1,0 +1,3 @@
+/mnt/c/xxxxxx/cpp/build/CMakeFiles/arb_bot.dir
+/mnt/c/xxxxxx/cpp/build/CMakeFiles/edit_cache.dir
+/mnt/c/xxxxxx/cpp/build/CMakeFiles/rebuild_cache.dir
