@@ -320,7 +320,7 @@ Monitor the C++ console - it processes updates as fast as exchanges send them (u
 1. **No exchange-specific optimizations** (could use dedicated binary protocols)
 2. **No GPU acceleration** (not needed for this use case)
 3. **No lock-free data structures** (could reduce contention in multi-threaded scenarios)
-4. **C++ only supports Binance/Kraken/Coinbase** (Bybit/OKX still in Python)
+4. **All 5 exchanges now supported in C++** (Binance, Kraken, Coinbase, Bybit, OKX)
 
 ### Potential Future Improvements
 1. **SIMD JSON parsing** with simdjson library (2-4x faster)

@@ -25,6 +25,8 @@ set(SOURCES
     src/binance_client.cpp
     src/kraken_client.cpp
     src/coinbase_client.cpp
+    src/bybit_client.cpp
+    src/okx_client.cpp
     src/price_feed_server.cpp
 )
 

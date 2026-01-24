@@ -101,13 +101,13 @@ Navigate to `http://localhost:8000` in your browser.
 
 ## Supported Exchanges
 
-| Exchange | Status | WebSocket API |
-|----------|--------|---------------|
-| Bybit    | ✅     | v5 Public Ticker |
-| OKX      | ✅     | v5 Public Ticker |
-| Binance  | ✅     | Public BookTicker |
-| Kraken   | ⚠️     | v2 Ticker (may have SSL issues) |
-| Coinbase | ⚠️     | Advanced Trade (may have SSL issues) |
+| Exchange | Python | C++  | WebSocket API |
+|----------|--------|------|---------------|
+| Binance  | ✅     | ✅   | Public BookTicker |
+| Kraken   | ✅     | ✅   | v2 Ticker |
+| Coinbase | ✅     | ✅   | Advanced Trade |
+| Bybit    | ✅     | ✅   | v5 Public Ticker |
+| OKX      | ✅     | ✅   | v5 Public Ticker |
 
 ## Monitored Pairs
 

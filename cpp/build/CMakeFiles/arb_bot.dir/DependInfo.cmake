@@ -9,9 +9,11 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/mnt/c/xxxxxx/cpp/src/binance_client.cpp" "CMakeFiles/arb_bot.dir/src/binance_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/binance_client.cpp.o.d"
+  "/mnt/c/xxxxxx/cpp/src/bybit_client.cpp" "CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/coinbase_client.cpp" "CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/kraken_client.cpp" "CMakeFiles/arb_bot.dir/src/kraken_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/kraken_client.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/main.cpp" "CMakeFiles/arb_bot.dir/src/main.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/main.cpp.o.d"
+  "/mnt/c/xxxxxx/cpp/src/okx_client.cpp" "CMakeFiles/arb_bot.dir/src/okx_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/okx_client.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/price_feed_server.cpp" "CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/price_update.cpp" "CMakeFiles/arb_bot.dir/src/price_update.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/price_update.cpp.o.d"
   "/mnt/c/xxxxxx/cpp/src/websocket_client.cpp" "CMakeFiles/arb_bot.dir/src/websocket_client.cpp.o" "gcc" "CMakeFiles/arb_bot.dir/src/websocket_client.cpp.o.d"

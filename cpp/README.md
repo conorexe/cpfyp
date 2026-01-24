@@ -63,8 +63,8 @@ make -j$(nproc)
 ```
 
 The C++ engine will:
-1. Connect to Binance, Kraken, and Coinbase WebSocket APIs
-2. Parse real-time price feeds
+1. Connect to all 5 exchange WebSocket APIs (Binance, Kraken, Coinbase, Bybit, OKX)
+2. Parse real-time price feeds with minimal latency
 3. Stream price updates to Python dashboard via TCP (port 5555)
 
 ## Architecture
@@ -77,6 +77,8 @@ The C++ engine will:
 │  │ Binance WebSocket           │   │
 │  │ Kraken WebSocket            │   │
 │  │ Coinbase WebSocket          │   │
+│  │ Bybit WebSocket             │   │
+│  │ OKX WebSocket               │   │
 │  └───────────┬─────────────────┘   │
 │              │                      │
 │  ┌───────────▼─────────────────┐   │

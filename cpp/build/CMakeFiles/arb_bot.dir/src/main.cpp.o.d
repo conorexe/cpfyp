@@ -1692,6 +1692,8 @@ CMakeFiles/arb_bot.dir/src/main.cpp.o: /mnt/c/xxxxxx/cpp/src/main.cpp \
  /mnt/c/xxxxxx/cpp/include/price_update.hpp \
  /mnt/c/xxxxxx/cpp/include/kraken_client.hpp \
  /mnt/c/xxxxxx/cpp/include/coinbase_client.hpp \
+ /mnt/c/xxxxxx/cpp/include/bybit_client.hpp \
+ /mnt/c/xxxxxx/cpp/include/okx_client.hpp \
  /mnt/c/xxxxxx/cpp/include/price_feed_server.hpp \
  /usr/include/c++/11/queue /usr/include/c++/11/deque \
  /usr/include/c++/11/bits/stl_deque.h /usr/include/c++/11/bits/deque.tcc \

@@ -21,6 +21,14 @@ from exchanges import (
 )
 from engine import ArbitrageEngine
 from engine_triangular import TriangularArbitrageEngine
+from engine_orderbook import OrderBookAggregator
+from engine_statistical import StatisticalArbitrageEngine
+from engine_ml import MLEngine
+from engine_storage import TickStorage
+from engine_cross_triangular import CrossExchangeTriangularEngine
+from engine_futures_spot import FuturesSpotBasisEngine
+from engine_dex_cex import DexCexArbitrageEngine
+from engine_latency import LatencyArbitrageEngine
 from dashboard import app, manager
 
 # Configure logging
@@ -37,11 +45,25 @@ logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
 
 
 class ArbitrageBot:
-    """Main bot orchestrator"""
+    """Main bot orchestrator with multi-engine architecture"""
     
     def __init__(self, mode: str = "python"):
+        # Core engines
         self.engine = ArbitrageEngine()
         self.triangular_engine = TriangularArbitrageEngine() if ENABLE_TRIANGULAR_ARBITRAGE else None
+        
+        # Advanced engines (Tier 1-3 features)
+        self.orderbook_engine = OrderBookAggregator()
+        self.statistical_engine = StatisticalArbitrageEngine()
+        self.ml_engine = MLEngine()
+        self.tick_storage = TickStorage(max_ticks_per_key=50000, retention_hours=1)
+        
+        # New arbitrage engines (Tier 4 features)
+        self.cross_triangular_engine = CrossExchangeTriangularEngine()
+        self.futures_spot_engine = FuturesSpotBasisEngine()
+        self.dex_cex_engine = DexCexArbitrageEngine()
+        self.latency_engine = LatencyArbitrageEngine()
+        
         self.mode = mode
         
         if mode == "simulation":
@@ -66,10 +88,24 @@ class ArbitrageBot:
         
     def setup(self):
         """Setup exchange callbacks and dashboard"""
-        # Connect engines to dashboard
+        # Connect all engines to dashboard
         manager.set_engine(self.engine)
         if self.triangular_engine:
             manager.set_triangular_engine(self.triangular_engine)
+        manager.set_advanced_engines(
+            orderbook=self.orderbook_engine,
+            statistical=self.statistical_engine,
+            ml=self.ml_engine,
+            storage=self.tick_storage
+        )
+        
+        # Connect new arbitrage engines
+        manager.set_new_arb_engines(
+            cross_triangular=self.cross_triangular_engine,
+            futures_spot=self.futures_spot_engine,
+            dex_cex=self.dex_cex_engine,
+            latency=self.latency_engine
+        )
         
         # Set callback for each exchange
         for exchange in self.exchanges:
@@ -77,15 +113,17 @@ class ArbitrageBot:
             
         logger.info(f"Bot configured with {len(self.exchanges)} exchanges")
         logger.info(f"Monitoring pairs: {', '.join(TRADING_PAIRS)}")
+        logger.info(f"🧠 Advanced engines: OrderBook, Statistical Arb, ML, Storage")
+        logger.info(f"🚀 New Arb engines: Cross-Exchange, Futures-Spot, DEX/CEX, Latency")
         if self.triangular_engine:
             logger.info(f"🔺 Triangular arbitrage enabled")
     
     def _process_price_update(self, update):
-        """Process price update and send to all engines"""
-        # Send to simple arbitrage engine
+        """Process price update and send to ALL engines"""
+        # Simple arbitrage engine
         self.engine.process_price_update(update)
         
-        # Send to triangular arbitrage engine
+        # Triangular arbitrage engine
         if self.triangular_engine:
             self.triangular_engine.update_price(
                 update.exchange,
@@ -93,6 +131,75 @@ class ArbitrageBot:
                 update.bid,
                 update.ask
             )
+        
+        # Order book aggregator
+        self.orderbook_engine.update_book(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask
+        )
+        
+        # Statistical arbitrage engine
+        mid_price = (update.bid + update.ask) / 2
+        self.statistical_engine.update_price(
+            update.exchange,
+            update.pair,
+            mid_price,
+            update.timestamp
+        )
+        
+        # ML engine
+        self.ml_engine.process_update(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask,
+            update.timestamp
+        )
+        
+        # Tick storage
+        self.tick_storage.store(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask,
+            update.timestamp
+        )
+        
+        # ===== NEW ARBITRAGE ENGINES =====
+        
+        # Cross-Exchange Triangular Arbitrage
+        self.cross_triangular_engine.update_price(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask
+        )
+        
+        # Futures-Spot Basis Arbitrage
+        self.futures_spot_engine.update_price(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask
+        )
+        
+        # DEX/CEX Arbitrage
+        self.dex_cex_engine.update_price(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask
+        )
+        
+        # Latency Arbitrage
+        self.latency_engine.update_price(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask
+        )
     
     async def start(self):
         """Start all exchange connections"""
@@ -162,8 +269,8 @@ def main():
     signal.signal(signal.SIGINT, handle_sigint)
     
     mode_descriptions = {
-        "cpp": ("C++ ENGINE (High Performance)", "Binance, Kraken, Coinbase via C++"),
-        "python": ("Python WebSockets", "Bybit, OKX, Binance"),
+        "cpp": ("C++ ENGINE (High Performance)", "All 5 Exchanges via C++"),
+        "python": ("Python WebSockets", "All 5 Exchanges"),
         "simulation": ("SIMULATION (Mock Data)", "Simulated Exchanges"),
     }
     

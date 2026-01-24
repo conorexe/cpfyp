@@ -153,10 +153,38 @@ CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/xxxxxx/cpp/src/coinbase_client.cpp -o CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.s
 
+CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o: CMakeFiles/arb_bot.dir/flags.make
+CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o: ../src/bybit_client.cpp
+CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o: CMakeFiles/arb_bot.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o -MF CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o.d -o CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o -c /mnt/c/xxxxxx/cpp/src/bybit_client.cpp
+
+CMakeFiles/arb_bot.dir/src/bybit_client.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/arb_bot.dir/src/bybit_client.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/xxxxxx/cpp/src/bybit_client.cpp > CMakeFiles/arb_bot.dir/src/bybit_client.cpp.i
+
+CMakeFiles/arb_bot.dir/src/bybit_client.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/arb_bot.dir/src/bybit_client.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/xxxxxx/cpp/src/bybit_client.cpp -o CMakeFiles/arb_bot.dir/src/bybit_client.cpp.s
+
+CMakeFiles/arb_bot.dir/src/okx_client.cpp.o: CMakeFiles/arb_bot.dir/flags.make
+CMakeFiles/arb_bot.dir/src/okx_client.cpp.o: ../src/okx_client.cpp
+CMakeFiles/arb_bot.dir/src/okx_client.cpp.o: CMakeFiles/arb_bot.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/arb_bot.dir/src/okx_client.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/arb_bot.dir/src/okx_client.cpp.o -MF CMakeFiles/arb_bot.dir/src/okx_client.cpp.o.d -o CMakeFiles/arb_bot.dir/src/okx_client.cpp.o -c /mnt/c/xxxxxx/cpp/src/okx_client.cpp
+
+CMakeFiles/arb_bot.dir/src/okx_client.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/arb_bot.dir/src/okx_client.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/xxxxxx/cpp/src/okx_client.cpp > CMakeFiles/arb_bot.dir/src/okx_client.cpp.i
+
+CMakeFiles/arb_bot.dir/src/okx_client.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/arb_bot.dir/src/okx_client.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/xxxxxx/cpp/src/okx_client.cpp -o CMakeFiles/arb_bot.dir/src/okx_client.cpp.s
+
 CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o: CMakeFiles/arb_bot.dir/flags.make
 CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o: ../src/price_feed_server.cpp
 CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o: CMakeFiles/arb_bot.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o -MF CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o.d -o CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o -c /mnt/c/xxxxxx/cpp/src/price_feed_server.cpp
 
 CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.i: cmake_force
@@ -175,6 +203,8 @@ arb_bot_OBJECTS = \
 "CMakeFiles/arb_bot.dir/src/binance_client.cpp.o" \
 "CMakeFiles/arb_bot.dir/src/kraken_client.cpp.o" \
 "CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.o" \
+"CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o" \
+"CMakeFiles/arb_bot.dir/src/okx_client.cpp.o" \
 "CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o"
 
 # External object files for target arb_bot
@@ -186,6 +216,8 @@ arb_bot: CMakeFiles/arb_bot.dir/src/websocket_client.cpp.o
 arb_bot: CMakeFiles/arb_bot.dir/src/binance_client.cpp.o
 arb_bot: CMakeFiles/arb_bot.dir/src/kraken_client.cpp.o
 arb_bot: CMakeFiles/arb_bot.dir/src/coinbase_client.cpp.o
+arb_bot: CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o
+arb_bot: CMakeFiles/arb_bot.dir/src/okx_client.cpp.o
 arb_bot: CMakeFiles/arb_bot.dir/src/price_feed_server.cpp.o
 arb_bot: CMakeFiles/arb_bot.dir/build.make
 arb_bot: /usr/lib/x86_64-linux-gnu/libboost_system.so.1.74.0
@@ -194,7 +226,7 @@ arb_bot: /usr/lib/x86_64-linux-gnu/libssl.so
 arb_bot: /usr/lib/x86_64-linux-gnu/libcrypto.so
 arb_bot: /usr/lib/x86_64-linux-gnu/libboost_atomic.so.1.74.0
 arb_bot: CMakeFiles/arb_bot.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable arb_bot"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/mnt/c/xxxxxx/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable arb_bot"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/arb_bot.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

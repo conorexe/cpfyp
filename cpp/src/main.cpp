@@ -10,6 +10,8 @@
 #include "binance_client.hpp"
 #include "kraken_client.hpp"
 #include "coinbase_client.hpp"
+#include "bybit_client.hpp"
+#include "okx_client.hpp"
 #include "price_feed_server.hpp"
 
 namespace asio = boost::asio;
@@ -31,7 +33,7 @@ int main() {
 ║     ⚡ CRYPTO ARBITRAGE BOT - C++ ENGINE ⚡              ║
 ║                                                           ║
 ║     High-performance WebSocket clients                    ║
-║     Exchanges: Binance, Kraken, Coinbase                  ║
+║     Exchanges: Binance, Kraken, Coinbase, Bybit, OKX      ║
 ║     IPC Port: 5555                                        ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -77,6 +79,14 @@ int main() {
         auto coinbase = std::make_shared<arb::CoinbaseClient>(ioc, ssl_ctx);
         coinbase->set_callback(price_callback);
         clients.push_back(coinbase);
+        
+        auto bybit = std::make_shared<arb::BybitClient>(ioc, ssl_ctx);
+        bybit->set_callback(price_callback);
+        clients.push_back(bybit);
+        
+        auto okx = std::make_shared<arb::OKXClient>(ioc, ssl_ctx);
+        okx->set_callback(price_callback);
+        clients.push_back(okx);
         
         // Start all clients
         std::cout << "Starting exchange connections..." << std::endl;

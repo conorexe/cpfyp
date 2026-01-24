@@ -153,6 +153,30 @@ src/binance_client.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/binance_client.cpp.s
 .PHONY : src/binance_client.cpp.s
 
+src/bybit_client.o: src/bybit_client.cpp.o
+.PHONY : src/bybit_client.o
+
+# target to build an object file
+src/bybit_client.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/bybit_client.cpp.o
+.PHONY : src/bybit_client.cpp.o
+
+src/bybit_client.i: src/bybit_client.cpp.i
+.PHONY : src/bybit_client.i
+
+# target to preprocess a source file
+src/bybit_client.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/bybit_client.cpp.i
+.PHONY : src/bybit_client.cpp.i
+
+src/bybit_client.s: src/bybit_client.cpp.s
+.PHONY : src/bybit_client.s
+
+# target to generate assembly for a file
+src/bybit_client.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/bybit_client.cpp.s
+.PHONY : src/bybit_client.cpp.s
+
 src/coinbase_client.o: src/coinbase_client.cpp.o
 .PHONY : src/coinbase_client.o
 
@@ -224,6 +248,30 @@ src/main.s: src/main.cpp.s
 src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
+
+src/okx_client.o: src/okx_client.cpp.o
+.PHONY : src/okx_client.o
+
+# target to build an object file
+src/okx_client.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/okx_client.cpp.o
+.PHONY : src/okx_client.cpp.o
+
+src/okx_client.i: src/okx_client.cpp.i
+.PHONY : src/okx_client.i
+
+# target to preprocess a source file
+src/okx_client.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/okx_client.cpp.i
+.PHONY : src/okx_client.cpp.i
+
+src/okx_client.s: src/okx_client.cpp.s
+.PHONY : src/okx_client.s
+
+# target to generate assembly for a file
+src/okx_client.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/arb_bot.dir/build.make CMakeFiles/arb_bot.dir/src/okx_client.cpp.s
+.PHONY : src/okx_client.cpp.s
 
 src/price_feed_server.o: src/price_feed_server.cpp.o
 .PHONY : src/price_feed_server.o
@@ -309,6 +357,9 @@ help:
 	@echo "... src/binance_client.o"
 	@echo "... src/binance_client.i"
 	@echo "... src/binance_client.s"
+	@echo "... src/bybit_client.o"
+	@echo "... src/bybit_client.i"
+	@echo "... src/bybit_client.s"
 	@echo "... src/coinbase_client.o"
 	@echo "... src/coinbase_client.i"
 	@echo "... src/coinbase_client.s"
@@ -318,6 +369,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/okx_client.o"
+	@echo "... src/okx_client.i"
+	@echo "... src/okx_client.s"
 	@echo "... src/price_feed_server.o"
 	@echo "... src/price_feed_server.i"
 	@echo "... src/price_feed_server.s"

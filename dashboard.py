@@ -23,6 +23,15 @@ class DashboardManager:
         self.active_connections: list[WebSocket] = []
         self.engine: Optional[ArbitrageEngine] = None
         self.triangular_engine = None
+        self.orderbook_engine = None
+        self.statistical_engine = None
+        self.ml_engine = None
+        self.tick_storage = None
+        # New arbitrage engines
+        self.cross_triangular_engine = None
+        self.futures_spot_engine = None
+        self.dex_cex_engine = None
+        self.latency_engine = None
         
     def set_engine(self, engine: ArbitrageEngine):
         """Set the arbitrage engine and register callbacks"""
@@ -34,6 +43,37 @@ class DashboardManager:
         """Set the triangular arbitrage engine and register callbacks"""
         self.triangular_engine = engine
         engine.on_opportunity(self._on_triangular_opportunity)
+    
+    def set_advanced_engines(self, orderbook=None, statistical=None, ml=None, storage=None):
+        """Set advanced engines"""
+        self.orderbook_engine = orderbook
+        self.statistical_engine = statistical
+        self.ml_engine = ml
+        self.tick_storage = storage
+        
+        # Register callbacks for advanced engines
+        if statistical:
+            statistical.on_signal(self._on_stat_arb_signal)
+        if ml:
+            ml.on_prediction(self._on_ml_prediction)
+            ml.on_anomaly(self._on_anomaly)
+    
+    def set_new_arb_engines(self, cross_triangular=None, futures_spot=None, dex_cex=None, latency=None):
+        """Set new arbitrage engines"""
+        self.cross_triangular_engine = cross_triangular
+        self.futures_spot_engine = futures_spot
+        self.dex_cex_engine = dex_cex
+        self.latency_engine = latency
+        
+        # Register callbacks for new engines
+        if cross_triangular:
+            cross_triangular.on_opportunity(self._on_cross_triangular_opportunity)
+        if futures_spot:
+            futures_spot.on_opportunity(self._on_futures_spot_opportunity)
+        if dex_cex:
+            dex_cex.on_opportunity(self._on_dex_cex_opportunity)
+        if latency:
+            latency.on_opportunity(self._on_latency_opportunity)
     
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -86,6 +126,55 @@ class DashboardManager:
             "type": "triangular_opportunity",
             "data": opportunity.to_dict()
         }))
+    
+    def _on_stat_arb_signal(self, signal):
+        """Handle statistical arbitrage signal"""
+        asyncio.create_task(self.broadcast({
+            "type": "stat_arb_signal",
+            "data": signal.to_dict()
+        }))
+    
+    def _on_ml_prediction(self, prediction):
+        """Handle ML prediction"""
+        asyncio.create_task(self.broadcast({
+            "type": "ml_prediction",
+            "data": prediction.to_dict()
+        }))
+    
+    def _on_anomaly(self, anomaly):
+        """Handle detected anomaly"""
+        asyncio.create_task(self.broadcast({
+            "type": "anomaly",
+            "data": anomaly.to_dict()
+        }))
+    
+    def _on_cross_triangular_opportunity(self, opportunity):
+        """Handle cross-exchange triangular opportunity"""
+        asyncio.create_task(self.broadcast({
+            "type": "cross_triangular_opportunity",
+            "data": opportunity.to_dict()
+        }))
+    
+    def _on_futures_spot_opportunity(self, opportunity):
+        """Handle futures-spot basis opportunity"""
+        asyncio.create_task(self.broadcast({
+            "type": "futures_spot_opportunity",
+            "data": opportunity.to_dict()
+        }))
+    
+    def _on_dex_cex_opportunity(self, opportunity):
+        """Handle DEX/CEX arbitrage opportunity"""
+        asyncio.create_task(self.broadcast({
+            "type": "dex_cex_opportunity",
+            "data": opportunity.to_dict()
+        }))
+    
+    def _on_latency_opportunity(self, opportunity):
+        """Handle latency arbitrage opportunity"""
+        asyncio.create_task(self.broadcast({
+            "type": "latency_opportunity",
+            "data": opportunity.to_dict()
+        }))
 
 
 manager = DashboardManager()
@@ -112,11 +201,102 @@ async def get_state():
     
     state = manager.engine.get_state()
     
-    # Add triangular arbitrage data if enabled
+    # Add triangular arbitrage data
     if manager.triangular_engine:
         state.update(manager.triangular_engine.get_state())
     
+    # Add advanced engine data
+    if manager.orderbook_engine:
+        state["orderbook"] = manager.orderbook_engine.get_state()
+    
+    if manager.statistical_engine:
+        state["statistical"] = manager.statistical_engine.get_state()
+    
+    if manager.ml_engine:
+        state["ml"] = manager.ml_engine.get_state()
+    
+    if manager.tick_storage:
+        state["storage"] = manager.tick_storage.get_state()
+    
+    # Add new arbitrage engine data
+    if manager.cross_triangular_engine:
+        state["cross_triangular"] = manager.cross_triangular_engine.get_state()
+    
+    if manager.futures_spot_engine:
+        state["futures_spot"] = manager.futures_spot_engine.get_state()
+    
+    if manager.dex_cex_engine:
+        state["dex_cex"] = manager.dex_cex_engine.get_state()
+    
+    if manager.latency_engine:
+        state["latency"] = manager.latency_engine.get_state()
+    
     return state
+
+
+@app.get("/api/orderbook/{pair}")
+async def get_orderbook(pair: str):
+    """Get aggregated order book for a pair"""
+    if not manager.orderbook_engine:
+        return {"error": "Order book engine not initialized"}
+    pair = pair.replace("-", "/")
+    return manager.orderbook_engine.get_aggregated_book(pair).to_dict()
+
+
+@app.get("/api/ml/predictions")
+async def get_ml_predictions():
+    """Get ML predictions"""
+    if not manager.ml_engine:
+        return {"error": "ML engine not initialized"}
+    return manager.ml_engine.get_state()
+
+
+@app.get("/api/storage/stats")
+async def get_storage_stats():
+    """Get tick storage statistics"""
+    if not manager.tick_storage:
+        return {"error": "Storage not initialized"}
+    return manager.tick_storage.get_statistics()
+
+
+@app.get("/api/cross-triangular")
+async def get_cross_triangular():
+    """Get cross-exchange triangular arbitrage opportunities"""
+    if not manager.cross_triangular_engine:
+        return {"error": "Cross-triangular engine not initialized"}
+    return manager.cross_triangular_engine.get_state()
+
+
+@app.get("/api/futures-spot")
+async def get_futures_spot():
+    """Get futures-spot basis arbitrage opportunities"""
+    if not manager.futures_spot_engine:
+        return {"error": "Futures-spot engine not initialized"}
+    return manager.futures_spot_engine.get_state()
+
+
+@app.get("/api/dex-cex")
+async def get_dex_cex():
+    """Get DEX/CEX arbitrage opportunities"""
+    if not manager.dex_cex_engine:
+        return {"error": "DEX/CEX engine not initialized"}
+    return manager.dex_cex_engine.get_state()
+
+
+@app.get("/api/latency")
+async def get_latency():
+    """Get latency arbitrage opportunities"""
+    if not manager.latency_engine:
+        return {"error": "Latency engine not initialized"}
+    return manager.latency_engine.get_state()
+
+
+@app.get("/api/latency/feed-health")
+async def get_feed_health():
+    """Get exchange feed health status"""
+    if not manager.latency_engine:
+        return {"error": "Latency engine not initialized"}
+    return manager.latency_engine.get_feed_health()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -631,12 +811,50 @@ DASHBOARD_HTML = """
                 <div class="stat-value blue" id="statExchanges">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Pairs Monitored</div>
-                <div class="stat-value purple" id="statPairs">0</div>
+                <div class="stat-label">ML Prediction</div>
+                <div class="stat-value purple" id="statMLPrediction">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Market Regime</div>
+                <div class="stat-value yellow" id="statRegime">--</div>
+            </div>
+        </div>
+
+        <div class="stats-bar" style="margin-top: -8px;">
+            <div class="stat-card">
+                <div class="stat-label">Stat Arb Signals</div>
+                <div class="stat-value" style="color: #f97316;" id="statStatArb">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Anomalies Detected</div>
+                <div class="stat-value" style="color: #ef4444;" id="statAnomalies">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Ticks Stored</div>
+                <div class="stat-value blue" id="statTicks">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Best Spread</div>
-                <div class="stat-value yellow" id="statBestSpread">--%</div>
+                <div class="stat-value green" id="statBestSpread">--%</div>
+            </div>
+        </div>
+
+        <div class="stats-bar" style="margin-top: -8px;">
+            <div class="stat-card">
+                <div class="stat-label">New Strategies</div>
+                <div class="stat-value" style="color: #3b82f6;" id="statNewEngines">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cross-Exch Tri</div>
+                <div class="stat-value" style="color: #3b82f6;" id="statCrossTri">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Futures-Spot</div>
+                <div class="stat-value" style="color: #10b981;" id="statFuturesSpot">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">DEX/CEX + Latency</div>
+                <div class="stat-value" style="color: #8b5cf6;" id="statDexLatency">0</div>
             </div>
         </div>
 
@@ -664,6 +882,85 @@ DASHBOARD_HTML = """
                             <div class="no-opportunities-icon">📐</div>
                             <p>Computing triangular paths...</p>
                             <p style="font-size: 12px; margin-top: 8px;">Finding cycles within single exchanges</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>📊</span> Statistical Arbitrage (Mean Reversion)</div>
+                    </div>
+                    <div class="card-body" id="statArbContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">📈</div>
+                            <p>Analyzing pair correlations...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Computing z-scores for mean reversion</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>🤖</span> ML Predictions & Regime Analysis</div>
+                    </div>
+                    <div class="card-body" id="mlContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">🧠</div>
+                            <p>Training ML models...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Predicting opportunities & market regime</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW ARBITRAGE STRATEGIES -->
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>🔀</span> Cross-Exchange Triangular</div>
+                    </div>
+                    <div class="card-body" id="crossTriangularContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">🔀</div>
+                            <p>Scanning cross-exchange paths...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Finding multi-exchange triangular cycles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>📈</span> Futures-Spot Basis (Funding Rate)</div>
+                    </div>
+                    <div class="card-body" id="futuresSpotContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">📊</div>
+                            <p>Analyzing funding rates...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Monitoring perpetual vs spot basis</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>🌐</span> DEX/CEX Arbitrage</div>
+                    </div>
+                    <div class="card-body" id="dexCexContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">🌐</div>
+                            <p>Scanning DEX pools...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Comparing Uniswap/Curve vs CEX prices</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card opportunities-section">
+                    <div class="card-header">
+                        <div class="card-title"><span>⚡</span> Latency Arbitrage</div>
+                    </div>
+                    <div class="card-body" id="latencyContainer">
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">⚡</div>
+                            <p>Monitoring feed latencies...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Detecting stale exchange quotes</p>
                         </div>
                     </div>
                 </div>
@@ -715,10 +1012,20 @@ DASHBOARD_HTML = """
         let prices = {};
         let opportunities = [];
         let triangularOpportunities = [];
+        let statArbSignals = [];
+        let mlPredictions = [];
+        let anomalies = [];
+        let regimes = {};
         let history = [];
         let triangularHistory = [];
+        let ticksStored = 0;
         let ws = null;
         let exchanges = new Set();
+        // New arbitrage states
+        let crossTriangularOpps = [];
+        let futuresSpotOpps = [];
+        let dexCexOpps = [];
+        let latencyOpps = [];
 
         // WebSocket connection
         function connect() {
@@ -755,6 +1062,34 @@ DASHBOARD_HTML = """
                     triangularOpportunities = message.data.triangular_opportunities || [];
                     history = message.data.history || [];
                     triangularHistory = message.data.triangular_history || [];
+                    
+                    // Advanced engine data
+                    if (message.data.statistical) {
+                        statArbSignals = message.data.statistical.stat_arb_signals || [];
+                    }
+                    if (message.data.ml) {
+                        mlPredictions = message.data.ml.ml_predictions || [];
+                        anomalies = message.data.ml.anomalies || [];
+                        regimes = message.data.ml.market_regimes || {};
+                    }
+                    if (message.data.storage) {
+                        ticksStored = message.data.storage.storage_statistics?.total_ticks_stored || 0;
+                    }
+                    
+                    // New arbitrage engine data
+                    if (message.data.cross_triangular) {
+                        crossTriangularOpps = message.data.cross_triangular.cross_exchange_opportunities || [];
+                    }
+                    if (message.data.futures_spot) {
+                        futuresSpotOpps = message.data.futures_spot.futures_spot_opportunities || [];
+                    }
+                    if (message.data.dex_cex) {
+                        dexCexOpps = message.data.dex_cex.dex_cex_opportunities || [];
+                    }
+                    if (message.data.latency) {
+                        latencyOpps = message.data.latency.latency_opportunities || [];
+                    }
+                    
                     updateUI();
                     break;
                 case 'price':
@@ -791,6 +1126,55 @@ DASHBOARD_HTML = """
                     updateTriangularOpportunities();
                     updateStats();
                     break;
+                case 'stat_arb_signal':
+                    // Statistical arbitrage signal
+                    statArbSignals.unshift(message.data);
+                    if (statArbSignals.length > 10) statArbSignals.pop();
+                    updateStatArb();
+                    updateStats();
+                    break;
+                case 'ml_prediction':
+                    // ML prediction
+                    mlPredictions.unshift(message.data);
+                    if (mlPredictions.length > 10) mlPredictions.pop();
+                    updateML();
+                    updateStats();
+                    break;
+                case 'anomaly':
+                    // Anomaly detected
+                    anomalies.unshift(message.data);
+                    if (anomalies.length > 10) anomalies.pop();
+                    updateML();
+                    updateStats();
+                    break;
+                case 'cross_triangular_opportunity':
+                    // Cross-exchange triangular opportunity
+                    crossTriangularOpps.unshift(message.data);
+                    if (crossTriangularOpps.length > 10) crossTriangularOpps.pop();
+                    updateNewArbitrageEngines();
+                    updateStats();
+                    break;
+                case 'futures_spot_opportunity':
+                    // Futures-spot basis opportunity
+                    futuresSpotOpps.unshift(message.data);
+                    if (futuresSpotOpps.length > 10) futuresSpotOpps.pop();
+                    updateNewArbitrageEngines();
+                    updateStats();
+                    break;
+                case 'dex_cex_opportunity':
+                    // DEX/CEX arbitrage opportunity
+                    dexCexOpps.unshift(message.data);
+                    if (dexCexOpps.length > 10) dexCexOpps.pop();
+                    updateNewArbitrageEngines();
+                    updateStats();
+                    break;
+                case 'latency_opportunity':
+                    // Latency arbitrage opportunity
+                    latencyOpps.unshift(message.data);
+                    if (latencyOpps.length > 10) latencyOpps.pop();
+                    updateNewArbitrageEngines();
+                    updateStats();
+                    break;
             }
         }
 
@@ -798,17 +1182,47 @@ DASHBOARD_HTML = """
             updatePriceTable();
             updateOpportunities();
             updateTriangularOpportunities();
+            updateStatArb();
+            updateML();
             updateHistory();
             updateStats();
+            updateNewArbitrageEngines();
         }
 
         function updateStats() {
-            const totalOpps = opportunities.length + triangularOpportunities.length;
+            const totalOpps = opportunities.length + triangularOpportunities.length + statArbSignals.length + 
+                              crossTriangularOpps.length + futuresSpotOpps.length + dexCexOpps.length + latencyOpps.length;
             document.getElementById('statOpportunities').textContent = totalOpps;
             document.getElementById('statExchanges').textContent = exchanges.size;
+            document.getElementById('statStatArb').textContent = statArbSignals.length;
+            document.getElementById('statAnomalies').textContent = anomalies.length;
+            document.getElementById('statTicks').textContent = ticksStored.toLocaleString();
+            document.getElementById('statNewEngines').textContent = crossTriangularOpps.length + futuresSpotOpps.length + dexCexOpps.length + latencyOpps.length;
+            document.getElementById('statCrossTri').textContent = crossTriangularOpps.length;
+            document.getElementById('statFuturesSpot').textContent = futuresSpotOpps.length;
+            document.getElementById('statDexLatency').textContent = dexCexOpps.length + latencyOpps.length;
             
-            const pairs = new Set(Object.keys(prices));
-            document.getElementById('statPairs').textContent = pairs.size;
+            // ML Prediction
+            if (mlPredictions.length > 0) {
+                const latest = mlPredictions[0];
+                const prob = (latest.probability * 100).toFixed(0);
+                document.getElementById('statMLPrediction').textContent = `${prob}%`;
+                document.getElementById('statMLPrediction').style.color = prob > 50 ? '#00d26a' : '#9aa0a6';
+            }
+            
+            // Market Regime
+            const regimeKeys = Object.keys(regimes);
+            if (regimeKeys.length > 0) {
+                const regime = regimes[regimeKeys[0]];
+                const regimeColors = {
+                    'stable': '#00d26a',
+                    'volatile': '#ef4444',
+                    'trending_up': '#10b981',
+                    'trending_down': '#f97316'
+                };
+                document.getElementById('statRegime').textContent = regime.regime.toUpperCase();
+                document.getElementById('statRegime').style.color = regimeColors[regime.regime] || '#9aa0a6';
+            }
             
             let bestProfit = 0;
             if (opportunities.length > 0) {
@@ -819,6 +1233,255 @@ DASHBOARD_HTML = """
             }
             if (bestProfit > 0) {
                 document.getElementById('statBestSpread').textContent = bestProfit.toFixed(3) + '%';
+            }
+        }
+
+        function updateStatArb() {
+            const container = document.getElementById('statArbContainer');
+            
+            if (statArbSignals.length === 0) {
+                container.innerHTML = `
+                    <div class="no-opportunities">
+                        <div class="no-opportunities-icon">📈</div>
+                        <p>Analyzing pair correlations...</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Waiting for sufficient data (100+ ticks)</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const sig of statArbSignals) {
+                const signalColor = sig.signal === 'long_spread' ? '#00d26a' : sig.signal === 'short_spread' ? '#ef4444' : '#9aa0a6';
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), transparent); border: 1px solid #f97316; border-radius: 12px; padding: 16px; margin: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">${sig.pair_a} / ${sig.pair_b}</span>
+                            <span style="color: ${signalColor}; font-weight: 700;">${sig.signal.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                        <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
+                            <span>Z-Score: <strong style="color: var(--text-primary);">${sig.z_score.toFixed(2)}</strong></span>
+                            <span>Corr: <strong style="color: var(--text-primary);">${(sig.correlation * 100).toFixed(1)}%</strong></span>
+                            <span>Conf: <strong style="color: var(--text-primary);">${(sig.confidence * 100).toFixed(0)}%</strong></span>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                            Action: ${sig.action}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function updateML() {
+            const container = document.getElementById('mlContainer');
+            
+            let html = '';
+            
+            // Market Regimes
+            const regimeKeys = Object.keys(regimes);
+            if (regimeKeys.length > 0) {
+                html += '<div style="padding: 12px;"><div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">MARKET REGIMES</div>';
+                for (const pair of regimeKeys.slice(0, 4)) {
+                    const r = regimes[pair];
+                    const regimeIcons = {
+                        'stable': '🟢',
+                        'volatile': '🔴',
+                        'trending_up': '📈',
+                        'trending_down': '📉'
+                    };
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">${pair}</span>
+                            <span>${regimeIcons[r.regime] || '⚪'} ${r.regime.toUpperCase()} (${(r.confidence * 100).toFixed(0)}%)</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            // ML Predictions
+            if (mlPredictions.length > 0) {
+                html += '<div style="padding: 12px; border-top: 1px solid var(--border-color);"><div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">OPPORTUNITY PREDICTIONS</div>';
+                for (const pred of mlPredictions.slice(0, 3)) {
+                    const prob = (pred.probability * 100).toFixed(0);
+                    const color = prob > 60 ? '#00d26a' : prob > 30 ? '#ffd43b' : '#9aa0a6';
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                            <span style="font-size: 13px;">${pred.details?.pair || 'Market'}</span>
+                            <span style="color: ${color}; font-weight: 600;">${prob}% in ${pred.time_horizon_ms}ms</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            // Anomalies
+            if (anomalies.length > 0) {
+                html += '<div style="padding: 12px; border-top: 1px solid var(--border-color);"><div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">⚠️ ANOMALIES DETECTED</div>';
+                for (const a of anomalies.slice(0, 3)) {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); color: #ef4444;">
+                            <span style="font-size: 13px;">${a.exchange} - ${a.pair}</span>
+                            <span>${a.type.toUpperCase()} (${(a.severity * 100).toFixed(0)}%)</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            if (!html) {
+                html = `
+                    <div class="no-opportunities">
+                        <div class="no-opportunities-icon">🧠</div>
+                        <p>Collecting data for ML analysis...</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Predictions available after 100+ price updates</p>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function updateNewArbitrageEngines() {
+            // Cross-Exchange Triangular
+            const crossTriContainer = document.getElementById('crossTriangularContainer');
+            if (crossTriContainer) {
+                if (crossTriangularOpps.length === 0) {
+                    crossTriContainer.innerHTML = `
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">🔀</div>
+                            <p>Scanning cross-exchange paths...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Finding multi-exchange triangular cycles</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    for (const opp of crossTriangularOpps.slice(0, 5)) {
+                        html += `
+                            <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), transparent); border: 1px solid #3b82f6; border-radius: 12px; padding: 16px; margin: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">${opp.base_currency} Cycle</span>
+                                    <span style="color: #00d26a; font-weight: 700;">+${opp.profit_percent.toFixed(3)}%</span>
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                                    Exchanges: ${opp.exchanges.join(' → ')}
+                                </div>
+                                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                    Risk: ${(opp.risk_score * 100).toFixed(0)}% | Est. Transfer: ${opp.estimated_transfer_time_ms}ms
+                                </div>
+                            </div>
+                        `;
+                    }
+                    crossTriContainer.innerHTML = html;
+                }
+            }
+            
+            // Futures-Spot Basis
+            const futuresContainer = document.getElementById('futuresSpotContainer');
+            if (futuresContainer) {
+                if (futuresSpotOpps.length === 0) {
+                    futuresContainer.innerHTML = `
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">📊</div>
+                            <p>Analyzing funding rates...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Monitoring perpetual vs spot basis</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    for (const opp of futuresSpotOpps.slice(0, 5)) {
+                        const dirColor = opp.direction === 'cash_and_carry' ? '#10b981' : '#f97316';
+                        html += `
+                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), transparent); border: 1px solid #10b981; border-radius: 12px; padding: 16px; margin: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">${opp.exchange} ${opp.symbol}</span>
+                                    <span style="color: ${dirColor}; font-weight: 600; font-size: 12px;">${opp.direction.replace('_', ' ').toUpperCase()}</span>
+                                </div>
+                                <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                                    <span>Funding: <strong style="color: var(--text-primary);">${(opp.funding_rate * 100).toFixed(4)}%</strong></span>
+                                    <span>Annual: <strong style="color: #00d26a;">${opp.funding_rate_annualized.toFixed(1)}%</strong></span>
+                                </div>
+                                <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                    Basis: ${opp.basis_percent.toFixed(4)}% | Risk: ${opp.risk_level} | Conf: ${(opp.confidence * 100).toFixed(0)}%
+                                </div>
+                            </div>
+                        `;
+                    }
+                    futuresContainer.innerHTML = html;
+                }
+            }
+            
+            // DEX/CEX Arbitrage
+            const dexCexContainer = document.getElementById('dexCexContainer');
+            if (dexCexContainer) {
+                if (dexCexOpps.length === 0) {
+                    dexCexContainer.innerHTML = `
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">🌐</div>
+                            <p>Scanning DEX pools...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Comparing Uniswap/Curve vs CEX prices</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    for (const opp of dexCexOpps.slice(0, 5)) {
+                        const mevColor = opp.mev_risk === 'low' ? '#00d26a' : opp.mev_risk === 'medium' ? '#ffd43b' : '#ef4444';
+                        html += `
+                            <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), transparent); border: 1px solid #8b5cf6; border-radius: 12px; padding: 16px; margin: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">${opp.dex} ↔ ${opp.cex}</span>
+                                    <span style="color: #00d26a; font-weight: 700;">+$${opp.net_profit_usd.toFixed(2)}</span>
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                                    ${opp.pair} | ${opp.direction.replace('_', ' ')} | Chain: ${opp.dex_chain}
+                                </div>
+                                <div style="display: flex; gap: 12px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                    <span>Profit: ${opp.net_profit_percent.toFixed(3)}%</span>
+                                    <span>Gas: $${opp.gas_cost_usd.toFixed(2)}</span>
+                                    <span style="color: ${mevColor};">MEV: ${opp.mev_risk}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    dexCexContainer.innerHTML = html;
+                }
+            }
+            
+            // Latency Arbitrage
+            const latencyContainer = document.getElementById('latencyContainer');
+            if (latencyContainer) {
+                if (latencyOpps.length === 0) {
+                    latencyContainer.innerHTML = `
+                        <div class="no-opportunities">
+                            <div class="no-opportunities-icon">⚡</div>
+                            <p>Monitoring feed latencies...</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Detecting stale exchange quotes</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    for (const opp of latencyOpps.slice(0, 5)) {
+                        const dirColor = opp.direction === 'long' ? '#00d26a' : '#ef4444';
+                        html += `
+                            <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), transparent); border: 1px solid #fbbf24; border-radius: 12px; padding: 16px; margin: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600;">${opp.pair}</span>
+                                    <span style="color: ${dirColor}; font-weight: 700;">${opp.direction.toUpperCase()} ${opp.predicted_move_percent.toFixed(3)}%</span>
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                                    Stale: ${opp.stale_exchange} (${opp.staleness_ms}ms) → Fast: ${opp.fast_exchange}
+                                </div>
+                                <div style="display: flex; gap: 12px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                    <span>Window: ${opp.time_window_ms}ms</span>
+                                    <span>Confidence: ${(opp.confidence * 100).toFixed(0)}%</span>
+                                    <span>Risk: ${(opp.risk_score * 100).toFixed(0)}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    latencyContainer.innerHTML = html;
+                }
             }
         }
 
