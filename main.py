@@ -3,6 +3,13 @@ Crypto Arbitrage Bot - Main Entry Point
 
 This bot connects to multiple cryptocurrency exchanges via WebSocket,
 monitors real-time price feeds, and identifies arbitrage opportunities.
+
+Features:
+- Multi-strategy arbitrage detection (simple, triangular, cross-exchange)
+- Advanced ML prediction pipeline with ONNX runtime
+- TimescaleDB integration for tick storage
+- Prometheus metrics export
+- Advanced visualizations (heatmaps, 3D, globe)
 """
 import asyncio
 import logging
@@ -12,6 +19,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import Response
 
 from config import WEB_HOST, WEB_PORT, TRADING_PAIRS, MODE, ENABLE_TRIANGULAR_ARBITRAGE
 from exchanges import (
@@ -19,17 +27,29 @@ from exchanges import (
     BybitExchange, OKXExchange, 
     create_simulated_exchanges, create_cpp_bridge_client
 )
+
+# Core engines
 from engine import ArbitrageEngine
 from engine_triangular import TriangularArbitrageEngine
 from engine_orderbook import OrderBookAggregator
 from engine_statistical import StatisticalArbitrageEngine
 from engine_ml import MLEngine
 from engine_storage import TickStorage
+
+# Advanced arbitrage engines
 from engine_cross_triangular import CrossExchangeTriangularEngine
 from engine_futures_spot import FuturesSpotBasisEngine
 from engine_dex_cex import DexCexArbitrageEngine
 from engine_latency import LatencyArbitrageEngine
+
+# New advanced engines (Phase 1-3)
+from engine_execution import ExecutionSimulator
+from engine_metrics import MetricsEngine, metrics_engine
+from engine_ml_advanced import AdvancedMLEngine
+
+# Dashboard
 from dashboard import app, manager
+from dashboard_advanced import register_advanced_dashboard, ADVANCED_DASHBOARD_HTML
 
 # Configure logging
 logging.basicConfig(
@@ -63,6 +83,10 @@ class ArbitrageBot:
         self.futures_spot_engine = FuturesSpotBasisEngine()
         self.dex_cex_engine = DexCexArbitrageEngine()
         self.latency_engine = LatencyArbitrageEngine()
+        
+        # Phase 1-3 engines
+        self.execution_simulator = ExecutionSimulator()
+        self.advanced_ml_engine = AdvancedMLEngine()
         
         self.mode = mode
         
@@ -115,11 +139,15 @@ class ArbitrageBot:
         logger.info(f"Monitoring pairs: {', '.join(TRADING_PAIRS)}")
         logger.info(f"🧠 Advanced engines: OrderBook, Statistical Arb, ML, Storage")
         logger.info(f"🚀 New Arb engines: Cross-Exchange, Futures-Spot, DEX/CEX, Latency")
+        logger.info(f"📊 Phase 1-3: Execution Sim, Advanced ML, Metrics")
         if self.triangular_engine:
             logger.info(f"🔺 Triangular arbitrage enabled")
     
     def _process_price_update(self, update):
         """Process price update and send to ALL engines"""
+        # Record metric
+        metrics_engine.record_price_update(update.exchange, update.pair)
+        
         # Simple arbitrage engine
         self.engine.process_price_update(update)
         
@@ -200,6 +228,29 @@ class ArbitrageBot:
             update.bid,
             update.ask
         )
+        
+        # ===== PHASE 1-3 ENGINES =====
+        
+        # Advanced ML Engine
+        self.advanced_ml_engine.update(
+            update.exchange,
+            update.pair,
+            update.bid,
+            update.ask,
+            update.timestamp
+        )
+        
+        # Update execution simulator market data
+        self.execution_simulator.update_market_data(
+            update.exchange,
+            update.pair,
+            daily_volume_usd=10000000,  # Would come from actual volume data
+            order_book_depth_usd=100000,
+            volatility=0.02
+        )
+        
+        # Update tick storage metric
+        metrics_engine.record_tick_storage(self.tick_storage.total_ticks_received)
     
     async def start(self):
         """Start all exchange connections"""
@@ -223,6 +274,8 @@ class ArbitrageBot:
             logger.info(f"Started {exchange.name} connection task")
         
         logger.info(f"Dashboard available at http://localhost:{WEB_PORT}")
+        logger.info(f"Advanced analytics at http://localhost:{WEB_PORT}/advanced")
+        logger.info(f"Prometheus metrics at http://localhost:{WEB_PORT}/metrics")
         logger.info("=" * 60)
     
     async def stop(self):
@@ -237,6 +290,9 @@ class ArbitrageBot:
         # Cancel tasks
         for task in self.tasks:
             task.cancel()
+        
+        # Stop metrics engine
+        metrics_engine.stop()
         
         logger.info("Bot stopped")
 
@@ -255,6 +311,45 @@ async def lifespan(app: FastAPI):
 
 # Update app lifespan
 app.router.lifespan_context = lifespan
+
+# Register advanced dashboard routes
+register_advanced_dashboard(app)
+
+
+# Add Prometheus metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return Response(
+        content=metrics_engine.get_prometheus_metrics(),
+        media_type=metrics_engine.get_prometheus_content_type()
+    )
+
+
+@app.get("/api/metrics")
+async def api_metrics():
+    """JSON metrics endpoint"""
+    return metrics_engine.get_metrics_summary()
+
+
+@app.get("/api/execution/stats")
+async def execution_stats():
+    """Get execution simulation statistics"""
+    return bot.execution_simulator.get_state()
+
+
+@app.get("/api/ml/advanced")
+async def advanced_ml():
+    """Get advanced ML engine state"""
+    return bot.advanced_ml_engine.get_state()
+
+
+@app.get("/api/ml/predict/{pair}")
+async def ml_predict(pair: str):
+    """Get ML prediction for a pair"""
+    pair = pair.replace("-", "/")
+    prediction = bot.advanced_ml_engine.predict(pair)
+    return prediction.to_dict()
 
 
 def handle_sigint(sig, frame):
@@ -277,19 +372,30 @@ def main():
     mode_text, exch_text = mode_descriptions.get(MODE, ("UNKNOWN", "N/A"))
     
     print(f"""
-    ╔═══════════════════════════════════════════════════════════╗
-    ║                                                           ║
-    ║     ⚡ CRYPTO ARBITRAGE BOT MVP ⚡                        ║
-    ║                                                           ║
-    ║     Mode: {mode_text:<47} ║
-    ║     Exchanges: {exch_text:<42} ║
-    ║                                                           ║
-    ║     Dashboard: http://localhost:8000                      ║
-    ║                                                           ║
-    ║     Edit MODE in config.py to switch modes                ║
-    ║     Options: "cpp", "python", "simulation"                ║
-    ║                                                           ║
-    ╚═══════════════════════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                                                                   ║
+    ║     ⚡ CRYPTO ARBITRAGE BOT - FULL STACK ⚡                       ║
+    ║                                                                   ║
+    ║     Mode: {mode_text:<53} ║
+    ║     Exchanges: {exch_text:<48} ║
+    ║                                                                   ║
+    ║     Endpoints:                                                    ║
+    ║       Dashboard:        http://localhost:8000                     ║
+    ║       Advanced:         http://localhost:8000/advanced            ║
+    ║       Prometheus:       http://localhost:8000/metrics             ║
+    ║       API State:        http://localhost:8000/api/state           ║
+    ║                                                                   ║
+    ║     Features:                                                     ║
+    ║       ✓ Multi-strategy arbitrage detection                        ║
+    ║       ✓ Advanced ML prediction pipeline                           ║
+    ║       ✓ Execution simulation with slippage                        ║
+    ║       ✓ Prometheus metrics & Grafana support                      ║
+    ║       ✓ 3D visualizations & latency globe                         ║
+    ║                                                                   ║
+    ║     Edit MODE in config.py to switch modes                        ║
+    ║     Options: "cpp", "python", "simulation"                        ║
+    ║                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════╝
     """)
     
     # Run FastAPI server (which starts bot via lifespan)

@@ -1,160 +1,321 @@
-# 🚀 Crypto Arbitrage Bot MVP
+# Crypto Arbitrage Bot - Full Stack Implementation
 
-A real-time cryptocurrency arbitrage opportunity detector using WebSocket feeds from major exchanges.
+A high-performance, multi-strategy cryptocurrency arbitrage detection system with advanced ML predictions, real-time visualizations, and comprehensive monitoring.
 
-## Features
+## 🚀 Features
 
-- **Real-time Price Feeds**: WebSocket connections to Binance, Kraken, and Coinbase
-- **Arbitrage Detection**: Automatically identifies price discrepancies across exchanges
-- **Live Dashboard**: Beautiful web interface showing opportunities in real-time
-- **Multiple Modes**: Python, C++ (50-100x faster), or Simulation
-- **Configurable Pairs**: Monitor multiple trading pairs simultaneously
+### Phase 1: Multi-Strategy Engine
+- **Simple Cross-Exchange Arbitrage**: Buy low on Exchange A, sell high on Exchange B
+- **Triangular Arbitrage**: USDT → BTC → ETH → USDT within single exchanges
+- **Cross-Exchange Triangular**: Multi-exchange triangular paths with transfer simulation
+- **Order Book Aggregation**: Unified view of liquidity across all venues
+- **Execution Simulation**: Realistic slippage, fees, and transfer time modeling
 
-## Quick Start
+### Phase 2: Data Engineering
+- **TimescaleDB Integration**: Store billions of ticks with automatic compression
+- **Historical Replay Engine**: Replay any day at 1x to 1000x speed for backtesting
+- **Prometheus Metrics**: Full observability with Grafana dashboards
+- **Feed Health Monitoring**: Track latency, staleness, and update rates
 
-### 1. Install Python Dependencies
+### Phase 3: ML Pipeline
+- **Advanced Feature Engineering**:
+  - Price velocity/acceleration
+  - Order book imbalance
+  - Cross-exchange spread momentum
+  - Volatility regime features
+  - Technical indicators (RSI, MACD, Bollinger)
+- **Sequence Models**: LSTM/Transformer architecture for temporal patterns
+- **ONNX Runtime**: <10ms inference latency
+- **Opportunity Prediction**: Predict arbitrage windows 500ms-2s ahead
+
+### Phase 4: Visualization Excellence
+- **Order Book Heatmap**: Depth visualization with animated changes
+- **Opportunity Flow Diagram**: Sankey diagram showing money movement
+- **3D Market Visualization**: Interactive Three.js surface plots
+- **Latency Globe**: World map with real-time exchange latencies
+
+## 📁 Project Structure
+
+```
+├── config.py                    # Configuration settings
+├── main.py                      # Main entry point
+├── requirements.txt             # Python dependencies
+│
+├── engines/                     # Engine package (for clean imports)
+│   └── __init__.py
+│
+├── engine.py                    # Core arbitrage detection
+├── engine_triangular.py         # Triangular arbitrage paths
+├── engine_orderbook.py          # Order book aggregation
+├── engine_statistical.py        # Statistical arbitrage (mean reversion)
+├── engine_ml.py                 # Basic ML predictions
+├── engine_storage.py            # In-memory tick storage
+│
+├── engine_cross_triangular.py   # Cross-exchange triangular
+├── engine_futures_spot.py       # Futures-spot basis arbitrage
+├── engine_dex_cex.py            # DEX/CEX arbitrage
+├── engine_latency.py            # Latency arbitrage
+│
+├── engine_execution.py          # Execution simulation
+├── engine_timescale.py          # TimescaleDB integration
+├── engine_replay.py             # Historical replay
+├── engine_metrics.py            # Prometheus metrics
+├── engine_ml_advanced.py        # Advanced ML with ONNX
+│
+├── dashboard.py                 # Main dashboard (FastAPI + WebSocket)
+├── dashboard_advanced.py        # Advanced visualizations
+│
+├── exchanges/                   # Exchange connectors
+│   ├── __init__.py
+│   ├── base.py                  # Base exchange class
+│   ├── binance.py
+│   ├── bybit.py
+│   ├── coinbase.py
+│   ├── kraken.py
+│   ├── okx.py
+│   ├── simulator.py             # Mock exchange for testing
+│   └── cpp_bridge.py            # C++ engine bridge
+│
+└── cpp/                         # High-performance C++ engine
+    ├── CMakeLists.txt
+    ├── src/
+    └── include/
+```
+
+## 🛠 Installation
+
+### Basic Setup
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd crypto-arbitrage-bot
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Choose Your Mode
+### Optional: TimescaleDB Setup
 
-Edit `config.py` and set `MODE`:
-- `"python"` - Python WebSocket clients (easy setup, no compilation)
-- `"cpp"` - C++ high-performance engine (production-ready, requires build)
-- `"simulation"` - Mock data for testing (no network needed)
-
-### 3. Run the Bot
-
-#### Option A: Python Mode (Default)
 ```bash
-python main.py
+# Install TimescaleDB (using Docker)
+docker run -d --name timescaledb \
+    -p 5432:5432 \
+    -e POSTGRES_PASSWORD=password \
+    timescale/timescaledb:latest-pg15
+
+# Create database
+docker exec -it timescaledb psql -U postgres -c "CREATE DATABASE arbitrage;"
 ```
 
-#### Option B: C++ Mode (High Performance)
+### Optional: C++ Engine Setup
+
 ```bash
-# Terminal 1: Build and run C++ engine
 cd cpp
-chmod +x build.sh  # Linux/Mac only
-./build.sh         # or build.bat on Windows
-cd build
-./arb_bot          # or arb_bot.exe on Windows
-
-# Terminal 2: Run Python dashboard
-python main.py
+mkdir build && cd build
+cmake ..
+make
+./arb_bot  # Start C++ engine first
 ```
 
-#### Option C: Simulation Mode
+## 🚀 Quick Start
+
+### Run in Simulation Mode (No API Keys Required)
+
 ```bash
-# Set MODE = "simulation" in config.py
+# Edit config.py
+MODE = "simulation"
+
+# Start the bot
 python main.py
 ```
 
-### 4. Open Dashboard
+### Run with Live Data
 
-Navigate to `http://localhost:8000` in your browser.
+```bash
+# Edit config.py
+MODE = "python"  # or "cpp" for high performance
 
-## Architecture
-
-### Python Mode
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Binance   │     │   Kraken    │     │  Coinbase   │
-│  WebSocket  │     │  WebSocket  │     │  WebSocket  │
-└──────┬──────┘     └──────┬──────┘     └──────┬──────┘
-       │                   │                   │
-       └───────────────────┼───────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │  Arbitrage  │
-                    │   Engine    │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │    Web      │
-                    │  Dashboard  │
-                    └─────────────┘
+# Start the bot
+python main.py
 ```
 
-### C++ Mode (High Performance)
-```
-┌─────────────────────────────────────────┐
-│  C++ Engine (50-100x faster)            │
-│                                         │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │ Binance │  │ Kraken  │  │Coinbase │ │
-│  │   WS    │  │   WS    │  │   WS    │ │
-│  └────┬────┘  └────┬────┘  └────┬────┘ │
-│       └────────────┼─────────────┘      │
-│            ┌───────▼────────┐           │
-│            │ TCP Server     │           │
-│            │ (Port 5555)    │           │
-│            └───────┬────────┘           │
-└────────────────────┼────────────────────┘
-                     │ JSON Stream
-              ┌──────▼──────┐
-              │   Python    │
-              │  Dashboard  │
-              └─────────────┘
-```
+### Access Dashboards
 
-## Supported Exchanges
+- **Main Dashboard**: http://localhost:8000
+- **Advanced Analytics**: http://localhost:8000/advanced
+- **Prometheus Metrics**: http://localhost:8000/metrics
+- **API State**: http://localhost:8000/api/state
 
-| Exchange | Python | C++  | WebSocket API |
-|----------|--------|------|---------------|
-| Binance  | ✅     | ✅   | Public BookTicker |
-| Kraken   | ✅     | ✅   | v2 Ticker |
-| Coinbase | ✅     | ✅   | Advanced Trade |
-| Bybit    | ✅     | ✅   | v5 Public Ticker |
-| OKX      | ✅     | ✅   | v5 Public Ticker |
+## 📊 API Endpoints
 
-## Monitored Pairs
+| Endpoint | Description |
+|----------|-------------|
+| `GET /` | Main dashboard |
+| `GET /advanced` | Advanced visualizations |
+| `GET /metrics` | Prometheus metrics |
+| `GET /api/state` | Full system state |
+| `GET /api/orderbook/{pair}` | Aggregated order book |
+| `GET /api/ml/predictions` | ML predictions |
+| `GET /api/ml/advanced` | Advanced ML state |
+| `GET /api/ml/predict/{pair}` | Get prediction for pair |
+| `GET /api/execution/stats` | Execution statistics |
+| `GET /api/cross-triangular` | Cross-exchange opportunities |
+| `GET /api/futures-spot` | Futures-spot opportunities |
+| `GET /api/dex-cex` | DEX/CEX opportunities |
+| `GET /api/latency` | Latency arbitrage opportunities |
+| `WS /ws` | WebSocket for real-time updates |
 
-- BTC/USDT
-- ETH/USDT
-- SOL/USDT
-- XRP/USDT
-
-## Configuration
+## 🔧 Configuration
 
 Edit `config.py` to customize:
-- **MODE**: Choose `"python"`, `"cpp"`, or `"simulation"`
-- **Trading pairs**: BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT
-- **Minimum threshold**: Profit percentage to flag opportunities
-- **WebSocket settings**: Reconnection delays and attempts
 
-## Performance Comparison
+```python
+# Operation mode
+MODE = "simulation"  # "python", "cpp", "simulation"
 
-| Mode | Latency | Throughput | Setup Effort |
-|------|---------|------------|--------------|
-| Python | ~10ms | ~1K updates/s | ⭐ Easy |
-| C++ | ~0.1ms | ~10K+ updates/s | ⭐⭐⭐ Advanced |
-| Simulation | N/A | Unlimited | ⭐ Easy |
+# Trading pairs
+TRADING_PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
 
-**When to use C++:**
-- Production trading with real money
-- Opportunities disappear in <100ms
-- Need to process >5K updates/second
-- Every millisecond counts
+# Arbitrage thresholds
+MIN_PROFIT_THRESHOLD = 0.01  # 0.01% minimum
+TRIANGULAR_MIN_PROFIT_THRESHOLD = 0.1  # 0.1% for triangular
 
-**When Python is fine:**
-- MVP/testing phase
-- Arbitrage windows are >500ms
-- Monitoring only (not executing trades)
-- `SKIP_SSL_VERIFY`: Set to `True` if behind a corporate proxy/firewall with SSL inspection
+# Enable/disable features
+ENABLE_TRIANGULAR_ARBITRAGE = True
+```
 
-## Disclaimer
+## 📈 Grafana Dashboard
 
-⚠️ This is an MVP for educational purposes. Real arbitrage trading involves:
-- Exchange fees (trading + withdrawal)
-- Transfer times between exchanges
-- Slippage on large orders
-- API rate limits
-- Capital requirements on multiple exchanges
+Import the Grafana dashboard from `engine_metrics.py`:
 
-Always do your own research before trading.
+```python
+from engine_metrics import get_grafana_dashboard_json
+dashboard = get_grafana_dashboard_json()
+```
 
-## License
+Key panels:
+- Price update rates per exchange
+- Feed latency percentiles (p95, p99)
+- Opportunities detected per strategy
+- ML prediction latency
+- System memory usage
 
-MIT
+## 🧪 Testing with Replay
+
+```python
+from engine_replay import ReplayEngine, ReplayConfig
+from engine_storage import TickStorage
+
+# Create replay engine
+storage = TickStorage()
+replay = ReplayEngine(storage)
+
+# Configure replay
+config = ReplayConfig(
+    speed=100,  # 100x speed
+    start_date=date(2024, 1, 1),
+    end_date=date(2024, 1, 2)
+)
+
+# Run replay with callbacks
+session = replay.create_session("backtest", config)
+session.on_opportunity(lambda opp: print(f"Found: {opp}"))
+await session.play()
+
+print(session.stats.to_dict())
+```
+
+## 🤖 ML Model Training (Advanced)
+
+The system uses rule-based prediction by default. To use trained models:
+
+1. Export historical data to train on
+2. Train LSTM/Transformer model
+3. Export to ONNX format
+4. Configure model path in `AdvancedMLEngine`
+
+```python
+engine = AdvancedMLEngine(model_path="models/predictor.onnx")
+```
+
+## 📝 Arbitrage Strategies
+
+### 1. Simple Cross-Exchange
+```
+Buy BTC @ $65,000 on Binance
+Sell BTC @ $65,100 on Coinbase
+Profit: 0.15% - fees
+```
+
+### 2. Triangular (Single Exchange)
+```
+USDT → BTC → ETH → USDT
+Start: $10,000
+End: $10,050
+Profit: 0.5% - fees (3 trades)
+```
+
+### 3. Cross-Exchange Triangular
+```
+Buy BTC @ Binance
+Transfer to Kraken
+Buy ETH @ Kraken
+Transfer to Coinbase
+Sell ETH @ Coinbase
+```
+
+### 4. Futures-Spot Basis
+```
+When funding rate is 0.03% (high):
+- Short BTC-PERP on Binance
+- Long BTC spot on Binance
+- Collect funding every 8 hours
+Annualized: ~32%
+```
+
+### 5. DEX/CEX Arbitrage
+```
+Uniswap ETH/USDC: $3,150
+Binance ETH/USDT: $3,155
+Buy DEX, Sell CEX
+Profit: 0.16% - gas - fees
+```
+
+### 6. Latency Arbitrage
+```
+When Kraken feed is 500ms stale:
+- Binance shows $65,100 (fresh)
+- Kraken shows $65,000 (stale)
+- Buy on Kraken before it updates
+```
+
+## 🔒 Security Notes
+
+- **Never commit API keys** - Use environment variables
+- **Test in simulation mode first**
+- **Start with small amounts** when live trading
+- **Monitor execution slippage** closely
+- **Be aware of exchange rate limits**
+
+## 📄 License
+
+MIT License - See LICENSE file
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Submit pull request
+
+## 🆘 Support
+
+- Open an issue for bugs
+- Discussions for questions
+- PRs welcome!

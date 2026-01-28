@@ -1,4 +1,12 @@
-# Crypto Arbitrage Bot Dependencies
+# =============================================================================
+# MarketScout - Crypto Arbitrage Bot Dependencies
+# =============================================================================
+# Install with: pip install -r requirements.txt
+# =============================================================================
+
+# Core Dependencies
+# =================
+
 # WebSocket and async
 websockets>=12.0
 aiohttp>=3.9.0
@@ -7,8 +15,86 @@ aiohttp>=3.9.0
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 
-# Data handling
+# Data handling and validation
 pydantic>=2.5.0
+pydantic[email]>=2.5.0
 
 # Utilities
 python-dotenv>=1.0.0
+
+# Authentication (JWT)
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
+
+# Phase 2: Data Engineering
+# =========================
+
+# TimescaleDB/PostgreSQL (optional - fallback to in-memory if not available)
+psycopg2-binary>=2.9.9
+
+# Phase 2: Metrics & Monitoring
+# =============================
+
+# Prometheus metrics export
+prometheus-client>=0.19.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Phase 3: ML Pipeline
+# ====================
+
+# Scientific computing (core ML dependencies)
+numpy>=1.24.0
+
+# ONNX Runtime for fast inference (<10ms)
+onnxruntime>=1.17.0
+
+# Optional: GPU support for ONNX (uncomment if CUDA available)
+# onnxruntime-gpu>=1.17.0
+
+# Optional: For training models (not required for inference)
+# torch>=2.1.0
+# scikit-learn>=1.4.0
+# pandas>=2.1.0
+
+# Phase 4: Visualization
+# ======================
+# Note: Visualization libraries are loaded via CDN in the dashboard
+# No Python dependencies needed for:
+# - Plotly.js (heatmaps)
+# - Three.js (3D visualization)
+# - D3.js (Sankey diagrams)
+# - Globe.gl (latency globe)
+
+# Development Dependencies
+# ========================
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+httpx>=0.26.0
+
+# Type checking (optional)
+# mypy>=1.8.0
+
+# Code formatting (optional)
+# black>=24.1.0
+# isort>=5.13.0
+
+# =============================================================================
+# Installation Notes
+# =============================================================================
+# 
+# Quick install:
+#   pip install -r requirements.txt
+#
+# For development:
+#   pip install -r requirements.txt
+#   pip install pytest pytest-asyncio httpx mypy black isort
+#
+# For production with GPU (optional):
+#   pip install onnxruntime-gpu>=1.17.0
+#
+# =============================================================================

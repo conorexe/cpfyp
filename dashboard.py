@@ -8,12 +8,28 @@ from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from engine import ArbitrageEngine
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Crypto Arbitrage Bot", version="1.0.0")
+app = FastAPI(
+    title="MarketScout - Crypto Arbitrage Bot",
+    description="Real-time cryptocurrency arbitrage detection platform",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+# CORS middleware for frontend development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure properly in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class DashboardManager:
@@ -180,6 +196,57 @@ class DashboardManager:
 manager = DashboardManager()
 
 
+# =============================================================================
+# Health Check Endpoint
+# =============================================================================
+
+@app.get("/api/health", tags=["Health"])
+async def health_check():
+    """
+    Health check endpoint for load balancers and monitoring.
+    """
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "engine_ready": manager.engine is not None,
+        "exchanges_connected": len(manager.engine.prices) if manager.engine else 0,
+    }
+
+
+# =============================================================================
+# Register Additional Routers
+# =============================================================================
+
+# Import and register auth routes
+try:
+    from src.auth.routes import router as auth_router
+    app.include_router(auth_router)
+    logger.info("Auth routes registered")
+except ImportError as e:
+    logger.warning(f"Auth routes not available: {e}")
+
+# Import and register portfolio routes  
+try:
+    from src.portfolio.routes import router as portfolio_router
+    app.include_router(portfolio_router)
+    logger.info("Portfolio routes registered")
+except ImportError as e:
+    logger.warning(f"Portfolio routes not available: {e}")
+
+# Import and register export routes
+try:
+    from src.api.export import router as export_router
+    app.include_router(export_router)
+    logger.info("Export routes registered")
+except ImportError as e:
+    logger.warning(f"Export routes not available: {e}")
+
+
+# =============================================================================
+# WebSocket Endpoint
+# =============================================================================
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -311,10 +378,11 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Arbitrage Bot</title>
+    <title>MarketScout - Crypto Arbitrage Bot</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     <style>
         :root {
             --bg-primary: #0a0b0f;
@@ -795,11 +863,54 @@ DASHBOARD_HTML = """
                 <div class="logo-icon">⚡</div>
                 <h1>Crypto Arbitrage Bot</h1>
             </div>
-            <div class="status-indicator">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Connecting...</span>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <div id="userSection" style="display: none;">
+                    <button onclick="showPortfolio()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-right: 8px;">💼 Portfolio</button>
+                    <button onclick="exportData()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-right: 8px;">📥 Export</button>
+                    <span id="usernameDisplay" style="color: var(--text-secondary); margin-right: 8px;"></span>
+                    <button onclick="logout()" style="background: var(--accent-red-dim); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Logout</button>
+                </div>
+                <button id="loginBtn" onclick="showLoginModal()" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Login</button>
             </div>
         </header>
+        
+        <!-- Login Modal -->
+        <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px;">
+                <h2 style="margin-bottom: 24px; text-align: center;">🔐 Login to MarketScout</h2>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">Username</label>
+                        <input type="text" id="loginUsername" required style="width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">Password</label>
+                        <input type="password" id="loginPassword" required style="width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div id="loginError" style="color: var(--accent-red); margin-bottom: 16px; display: none;"></div>
+                    <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border: none; border-radius: 8px; color: white; font-size: 16px; font-weight: 600; cursor: pointer;">Login</button>
+                </form>
+                <p style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 14px;">
+                    Default: admin / Changeme123
+                </p>
+                <button onclick="hideLoginModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer;">×</button>
+            </div>
+        </div>
+        
+        <!-- Portfolio Modal -->
+        <div id="portfolioModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto; padding: 40px 20px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 32px; width: 100%; max-width: 800px; position: relative;">
+                <button onclick="hidePortfolioModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer;">×</button>
+                <h2 style="margin-bottom: 24px;">💼 Paper Trading Portfolio</h2>
+                <div id="portfolioContent">
+                    <p style="color: var(--text-muted);">Loading portfolio...</p>
+                </div>
+            </div>
+        </div>
 
         <div class="stats-bar">
             <div class="stat-card">
@@ -1679,7 +1790,283 @@ DASHBOARD_HTML = """
                 ws.send('ping');
             }
         }, 30000);
+
+        // =============================================================
+        // Authentication Functions
+        // =============================================================
+        
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        
+        function checkAuth() {
+            if (authToken) {
+                fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                })
+                .then(res => {
+                    if (res.ok) return res.json();
+                    throw new Error('Not authenticated');
+                })
+                .then(user => {
+                    currentUser = user;
+                    document.getElementById('loginBtn').style.display = 'none';
+                    document.getElementById('userSection').style.display = 'flex';
+                    document.getElementById('usernameDisplay').textContent = user.username;
+                })
+                .catch(() => {
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                });
+            }
+        }
+        
+        function showLoginModal() {
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('loginError').style.display = 'none';
+        }
+        
+        function hideLoginModal() {
+            document.getElementById('loginModal').style.display = 'none';
+        }
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail || 'Login failed');
+                }
+                
+                const data = await res.json();
+                authToken = data.access_token;
+                localStorage.setItem('authToken', authToken);
+                currentUser = data.user;
+                
+                hideLoginModal();
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('userSection').style.display = 'flex';
+                document.getElementById('usernameDisplay').textContent = currentUser.username;
+                
+                showNotification('Logged in successfully!', 'success');
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        function logout() {
+            fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            document.getElementById('loginBtn').style.display = 'block';
+            document.getElementById('userSection').style.display = 'none';
+            showNotification('Logged out', 'info');
+        }
+        
+        // =============================================================
+        // Portfolio Functions
+        // =============================================================
+        
+        function showPortfolio() {
+            document.getElementById('portfolioModal').style.display = 'flex';
+            loadPortfolio();
+        }
+        
+        function hidePortfolioModal() {
+            document.getElementById('portfolioModal').style.display = 'none';
+        }
+        
+        async function loadPortfolio() {
+            const content = document.getElementById('portfolioContent');
+            
+            if (!authToken) {
+                content.innerHTML = '<p style="color: var(--accent-red);">Please login to view portfolio</p>';
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/portfolio/default', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (res.status === 404) {
+                    // No portfolio, offer to create one
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <p style="margin-bottom: 20px;">You don't have a portfolio yet.</p>
+                            <button onclick="createPortfolio()" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border: none; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                Create Portfolio ($10,000)
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (!res.ok) throw new Error('Failed to load portfolio');
+                
+                const data = await res.json();
+                renderPortfolio(data);
+            } catch (err) {
+                content.innerHTML = `<p style="color: var(--accent-red);">Error: ${err.message}</p>`;
+            }
+        }
+        
+        function renderPortfolio(data) {
+            const content = document.getElementById('portfolioContent');
+            const pnlColor = data.total_pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            const pnlSign = data.total_pnl >= 0 ? '+' : '';
+            
+            let positionsHtml = data.positions.map(p => `
+                <tr>
+                    <td style="padding: 12px; font-weight: 600;">${p.asset}</td>
+                    <td style="padding: 12px; font-family: 'JetBrains Mono', monospace;">${p.quantity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}</td>
+                    <td style="padding: 12px;">$${p.current_price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td style="padding: 12px;">$${p.value_usd.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td style="padding: 12px; color: ${p.unrealized_pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                        ${p.unrealized_pnl >= 0 ? '+' : ''}$${p.unrealized_pnl.toFixed(2)} (${p.unrealized_pnl_percent.toFixed(2)}%)
+                    </td>
+                </tr>
+            `).join('');
+            
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                        <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Total Value</div>
+                        <div style="font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">$${data.total_value.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                    </div>
+                    <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                        <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Total P&L</div>
+                        <div style="font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: ${pnlColor};">
+                            ${pnlSign}$${data.total_pnl.toFixed(2)} (${pnlSign}${data.total_pnl_percent.toFixed(2)}%)
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                        <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Total Trades</div>
+                        <div style="font-size: 24px; font-weight: 700;">${data.total_trades}</div>
+                    </div>
+                    <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                        <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Win Rate</div>
+                        <div style="font-size: 24px; font-weight: 700; color: ${data.win_rate >= 50 ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                            ${data.win_rate.toFixed(1)}%
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 16px;">Positions</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                    <thead>
+                        <tr style="background: var(--bg-tertiary);">
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--text-muted);">Asset</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--text-muted);">Quantity</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--text-muted);">Price</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--text-muted);">Value</th>
+                            <th style="padding: 12px; text-align: left; font-size: 12px; color: var(--text-muted);">P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+                        ${positionsHtml}
+                    </tbody>
+                </table>
+                
+                <p style="color: var(--text-muted); font-size: 12px; text-align: center;">
+                    This is a paper trading portfolio for simulation purposes only.
+                </p>
+            `;
+        }
+        
+        async function createPortfolio() {
+            try {
+                const res = await fetch('/api/portfolio', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'My Portfolio',
+                        initial_balance: 10000,
+                    }),
+                });
+                
+                if (!res.ok) throw new Error('Failed to create portfolio');
+                
+                showNotification('Portfolio created!', 'success');
+                loadPortfolio();
+            } catch (err) {
+                showNotification('Error: ' + err.message, 'error');
+            }
+        }
+        
+        // =============================================================
+        // Export Functions
+        // =============================================================
+        
+        function exportData() {
+            const url = '/api/export/opportunities/csv?hours=24';
+            window.open(url, '_blank');
+            showNotification('Downloading opportunities CSV...', 'info');
+        }
+        
+        // =============================================================
+        // Notification Toast
+        // =============================================================
+        
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'var(--accent-green)',
+                error: 'var(--accent-red)',
+                info: 'var(--accent-blue)',
+                warning: 'var(--accent-yellow)',
+            };
+            
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: var(--bg-card);
+                border: 1px solid ${colors[type]};
+                border-left: 4px solid ${colors[type]};
+                color: var(--text-primary);
+                padding: 16px 24px;
+                border-radius: 8px;
+                z-index: 2000;
+                animation: slideIn 0.3s ease-out;
+                max-width: 400px;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Check authentication on load
+        checkAuth();
     </script>
+    
+    <style>
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100px); opacity: 0; }
+        }
+    </style>
 </body>
 </html>
 """
